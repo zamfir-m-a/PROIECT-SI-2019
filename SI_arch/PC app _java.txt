@@ -1,0 +1,183 @@
+package arduinoSerialComm;
+
+import java.awt.AWTException;
+import java.util.Scanner;
+import javax.swing.JFrame;
+import javax.swing.JSlider;
+import com.fazecast.jSerialComm.*;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+
+import java.awt.AWTException;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Frame;
+import java.awt.Robot;
+import java.awt.TextArea;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+
+public class Main {
+	
+
+	public  static int CurrX=500;
+	public static int CurrY=500;
+	
+	
+	
+	
+	
+
+	public static void main(String[] args) {
+		
+		int ox=0;;
+		int oy=0;;
+		
+		int stop=0;
+		
+		
+		String message;
+		JFrame window = new JFrame();
+		JSlider slider = new JSlider();
+		window.setTitle("Console log for arduino serial RX");
+		window.setSize(500,500);
+		//slider.setMaximum(20);
+		//window.add(slider);
+		
+		
+		JLabel label = new JLabel("Opened app succesfully",JLabel.CENTER); // configurare pentru afisari
+		label.setAlignmentX(0);
+		label.setAlignmentY(0);
+		window.setVisible(true);
+		window.add(label);
+		
+		window.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE); 
+		//ca idee de baza , daca nu aveam aceasta linie aplicatia nu se inchidea , insemnand ca si citirea de pe interfata seriala se executa continuu , si in background.
+		
+		// cand fereastra este inchisa , si aplicatia se inchide , astfel si comunicarea se inchide .
+		
+		
+		//window.pack();
+		window.setVisible(true);
+			
+		SerialPort[] ports = SerialPort.getCommPorts();
+		System.out.println("Select a port:");
+		int i = 1;
+		for(SerialPort port : ports)	// creeare legatura de comunicare ,sloturile COM se scaneaza , lasand la alegerea utilizatorului la care dintre ele este coenctat microcontolerul)
+			{label.setText(i +  ": " + port.getSystemPortName());
+			System.out.println(i++ +  ": " + port.getSystemPortName());
+			}
+		Scanner s = new Scanner(System.in);
+		int chosenPort ;
+		String response=JOptionPane.showInputDialog("Choose port");
+		
+		
+		chosenPort=Integer.parseInt(response);
+
+		
+		SerialPort serialPort = ports[chosenPort - 1];
+	
+		if(serialPort.openPort())
+				{System.out.println("Port opened successfully.");
+				label.setText("Port opened successfully.");
+				}	
+			else{
+				System.out.println("Unable to open the port.");
+				label.setText("Unable to open the port.");
+			return;}
+		
+		
+		//serialPort.setComPortParameters(9600, 8, 1, SerialPort.NO_PARITY);
+		serialPort.setComPortTimeouts(SerialPort.TIMEOUT_READ_SEMI_BLOCKING, 0, 0); // citire de pe interfata seriala ,continuu pana cand aplicatia iese sau numai este linie de citit
+
+		Scanner data = new Scanner(serialPort.getInputStream());
+		
+		String readData="";
+		
+		
+		
+		while(data.hasNextLine() ){
+			try
+			{	//System.out.println(readData );
+				readData=data.nextLine();
+				
+				//System.out.println(readData);
+				
+			
+			}
+			catch(Exception e){}
+			
+			
+			
+			
+			
+			// formatul este  xy , unde x este un digit  pe axa OX iar y este pe axa OY
+			
+			
+			{ // prindem valorile
+				
+				
+				//System.out.println(readData);
+				
+				if(readData.length() ==2) // good string , only the 1st fails sometimes
+					{
+					ox=Character.getNumericValue(readData.charAt(0)) ;
+					oy=Character.getNumericValue(readData.charAt(1)) ;
+					System.out.println("ox"+ox+"oy"+oy);
+					
+					
+				
+					int movX=0;
+					int movY=0;
+				
+					
+					if(ox < 4 && ox>0)
+						movX=-1;
+					else if(ox > 7)						
+							movX=1;
+						else
+							movX=0;
+					CurrX=CurrX+movX; // calculam /actualizam coord cursor
+					
+					
+					if(oy < 4 && oy>0)
+						movY=-1;
+						
+					else if(oy > 7)						
+							movY=1;
+						else
+							movY=0;  // calculam /actualizam coord cursor
+					
+					label.setText("movX: "+movX+"movY: "+movY+" |||| "+"SENSOR Values"+"OX: "+ox+"OY: "+oy); //showing captured values
+					CurrY=CurrY+movY;
+					
+					
+					try
+				    	{
+						Robot bot = new Robot(); //clasa care se ocupa de miscarea cursorului la coordonatele dorite
+						
+						bot.mouseMove(CurrX,CurrY );  
+				    	}
+				    	catch (AWTException e)
+				    	{
+				    		e.printStackTrace();
+				    	}
+					
+					
+					
+					
+					}// end valid message if 
+				
+				
+					
+				
+			
+			}
+		}
+		System.out.println("Done.");
+		return;
+	}
+
+}
